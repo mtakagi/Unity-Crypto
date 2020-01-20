@@ -20,7 +20,9 @@ namespace Crypto
 
         private Stream m_baseStream;
 
-        private byte[] m_key;
+        private byte[] m_S;
+
+        private byte[] m_Prga;
 
         public override bool CanRead => this.m_baseStream.CanRead;
 
@@ -35,7 +37,8 @@ namespace Crypto
         public ARC4Stream(Stream stream, byte[] key)
         {
             this.m_baseStream = stream;
-            this.m_key = key;
+            this.m_S = KSA(key);
+            this.m_Prga = PRGA(stream.Length);
         }
 
         public override void Flush()
@@ -45,8 +48,9 @@ namespace Crypto
 
         public override int Read(byte[] buffer, int offset, int count)
         {
+            var pos = this.Position;
             var ret = this.m_baseStream.Read(buffer, offset, count);
-            this.Encode(buffer, offset, count);
+            this.Encode(buffer, offset, ret, pos);
 
             return ret;
         }
@@ -63,7 +67,7 @@ namespace Crypto
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            this.Encode(buffer, offset, count);
+            this.Encode(buffer, offset, count, this.Position);
             this.m_baseStream.Write(buffer, offset, count);
         }
 
@@ -81,20 +85,28 @@ namespace Crypto
             return s;
         }
 
-        private void Encode(byte[] buffer, int offset, int count)
+        private byte[] PRGA(long length)
         {
-            var s = KSA(this.m_key);
-            var i = offset;
+            var i = 0;
             var j = 0;
+            var prga = new byte[length];
 
-            for (var index = offset; index < count; index++)
+            for (var index = 0; index < length; index++)
             {
                 i = (i + 1) % 256;
-                j = (j + s[i]) % 256;
-                (s[i], s[j]) = (s[j], s[i]);
-                var k = s[(s[i] + s[j]) % 256];
+                j = (j + m_S[i]) % 256;
+                (m_S[i], m_S[j]) = (m_S[j], m_S[i]);
+                prga[index] = m_S[(m_S[i] + m_S[j]) % 256];
+            }
 
-                buffer[index] = (byte)(buffer[index] ^ k);
+            return prga;
+        }
+
+        private void Encode(byte[] buffer, int offset, int count, long pos)
+        {
+            for (var index = offset; index < count; index++)
+            {
+                buffer[index] = (byte)(buffer[index] ^ this.m_Prga[index + pos]);
             }
         }
     }
