@@ -124,5 +124,84 @@ namespace Tests
                 Assert.AreEqual(result, item.xor);
             }
         }
+
+        [Test]
+        public void Salsa20StreamTestPaasses()
+        {
+            var list = new[] {
+                new {
+                    key = StringToByteArray("0053A6F94C9FF24598EB3E91E4378ADD3083D6297CCF2275C81B6EC11467BA0D"),
+                    nonce = StringToByteArray("0D74DB42A91077DE"),
+                    length = 131072,
+                    xor = StringToByteArray("C349B6A51A3EC9B712EAED3F90D8BCEE69B7628645F251A996F55260C62EF31FD6C6B0AEA94E136C9D984AD2DF3578F78E457527B03A0450580DD874F63B1AB9"),
+                },
+                new {
+                    key = StringToByteArray("0558ABFE51A4F74A9DF04396E93C8FE23588DB2E81D4277ACD2073C6196CBF12"),
+                    nonce = StringToByteArray("167DE44BB21980E7"),
+                    length = 131072,
+                    xor = StringToByteArray("C3EAAF32836BACE32D04E1124231EF47E101367D6305413A0EEB07C60698A2876E4D031870A739D6FFDDD208597AFF0A47AC17EDB0167DD67EBA84F1883D4DFD"),
+                },
+                new {
+                    key = StringToByteArray("0A5DB00356A9FC4FA2F5489BEE4194E73A8DE03386D92C7FD22578CB1E71C417"),
+                    nonce = StringToByteArray("1F86ED54BB2289F0"),
+                    length = 131072,
+                    xor = StringToByteArray("3CD23C3DC90201ACC0CF49B440B6C417F0DC8D8410A716D5314C059E14B1A8D9A9FB8EA3D9C8DAE12B21402F674AA95C67B1FC514E994C9D3F3A6E41DFF5BBA6"),
+                },
+                new {
+                    key = StringToByteArray("0F62B5085BAE0154A7FA4DA0F34699EC3F92E5388BDE3184D72A7DD02376C91C"),
+                    nonce = StringToByteArray("288FF65DC42B92F9"),
+                    length = 131072,
+                    xor = StringToByteArray("E00EBCCD70D69152725F9987982178A2E2E139C7BCBE04CA8A0E99E318D9AB76F988C8549F75ADD790BA4F81C176DA653C1A043F11A958E169B6D2319F4EEC1A"),
+                },
+            };
+
+            foreach (var item in list)
+            {
+                var input = new byte[item.length];
+                var stream = new Crypto.Salsa20Stream(input, item.key, item.nonce);
+                var output = new byte[item.length];
+                stream.Read(output, 0, item.length);
+                var result = new byte[64];
+                var buffer = new byte[64];
+
+                for (var i = 0; i < item.length; i += 64)
+                {
+                    System.Buffer.BlockCopy(output, i, buffer, 0, 64);
+
+                    for (var j = 0; j < 64; j++)
+                    {
+                        result[j] ^= buffer[j];
+                    }
+                }
+
+                Assert.AreEqual(result, item.xor);
+            }
+        }
+
+        [Test]
+        public void Salsa20StreamTestSimplePasses()
+        {
+            var message = System.Text.Encoding.UTF8.GetBytes("Hello world!");
+            var nonce = System.Text.Encoding.UTF8.GetBytes("8byte no");
+            var key = System.Text.Encoding.UTF8.GetBytes("this is 32-byte key for xsalsa20");
+            var stream = new Crypto.Salsa20Stream(message, key, nonce);
+            var output = new byte[message.Length];
+
+            stream.Read(output, 0, message.Length);
+            Assert.AreEqual(output, new byte[] { 65, 157, 224, 202, 47, 78, 178, 37, 154, 212, 145, 82 });
+        }
+
+        [Test]
+        public void Salsa20StreamTestSimpleDecryptPasses()
+        {
+            var message = new byte[] { 65, 157, 224, 202, 47, 78, 178, 37, 154, 212, 145, 82 };
+            var nonce = System.Text.Encoding.UTF8.GetBytes("8byte no");
+            var key = System.Text.Encoding.UTF8.GetBytes("this is 32-byte key for xsalsa20");
+            var stream = new Crypto.Salsa20Stream(message, key, nonce);
+            var output = new byte[message.Length];
+
+            stream.Read(output, 0, message.Length);
+            Assert.AreEqual(output, System.Text.Encoding.UTF8.GetBytes("Hello world!"));
+        }
     }
 }
