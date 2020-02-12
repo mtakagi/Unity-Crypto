@@ -12,9 +12,24 @@ namespace Crypto
 
         public Salsa20Stream(Stream stream, byte[] key, byte[] nonce)
         {
+            this.m_nonce = new byte[16];
+            if (nonce.Length == 24)
+            {
+                var hNonce = new byte[16];
+                System.Buffer.BlockCopy(nonce, 0, hNonce, 0, 16);
+                System.Buffer.BlockCopy(nonce, 16, this.m_nonce, 0, 8);
+                key = HSalsa20.Encode(key, hNonce);
+            }
+            else if (nonce.Length == 8)
+            {
+                System.Buffer.BlockCopy(nonce, 0, m_nonce, 0, 8);
+            }
+            else
+            {
+                throw new System.ArgumentException();
+            }
             m_baseStream = stream;
             m_key = key;
-            m_nonce = nonce;
         }
 
         public Salsa20Stream(byte[] input, byte[] key, byte[] nonce) : this(new MemoryStream(input), key, nonce)
@@ -130,16 +145,8 @@ namespace Crypto
 
             state[6] = (uint)this.m_nonce[0] | (uint)this.m_nonce[1] << 8 | (uint)this.m_nonce[2] << 16 | (uint)this.m_nonce[3] << 24;
             state[7] = (uint)this.m_nonce[4] | (uint)this.m_nonce[5] << 8 | (uint)this.m_nonce[6] << 16 | (uint)this.m_nonce[7] << 24;
-            if (this.m_nonce.Length == 16)
-            {
-                state[8] = (uint)this.m_nonce[8] | (uint)this.m_nonce[9] << 8 | (uint)this.m_nonce[10] << 16 | (uint)this.m_nonce[11] << 24;
-                state[9] = (uint)this.m_nonce[12] | (uint)this.m_nonce[13] << 8 | (uint)this.m_nonce[14] << 16 | (uint)this.m_nonce[15] << 24;
-            }
-            else
-            {
-                state[8] = 0;
-                state[9] = 0;
-            }
+            state[8] = (uint)this.m_nonce[8] | (uint)this.m_nonce[9] << 8 | (uint)this.m_nonce[10] << 16 | (uint)this.m_nonce[11] << 24;
+            state[9] = (uint)this.m_nonce[12] | (uint)this.m_nonce[13] << 8 | (uint)this.m_nonce[14] << 16 | (uint)this.m_nonce[15] << 24;
 
             var keyPosition = position % 64;
             var init = false;

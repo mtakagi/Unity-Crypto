@@ -62,6 +62,43 @@ namespace Tests
             }
         }
 
+        [Test]
+        public void HSalsa20StreamTestPasses()
+        {
+            var list = new[]{
+                new {
+                    message = System.Text.Encoding.UTF8.GetBytes("Hello world!"),
+                    nonce = System.Text.Encoding.UTF8.GetBytes("24-byte nonce for xsalsa"),
+                    key = System.Text.Encoding.UTF8.GetBytes("this is 32-byte key for xsalsa20"),
+                    result = new byte[] { 0x00, 0x2d, 0x45, 0x13, 0x84, 0x3f, 0xc2, 0x40, 0xc4, 0x01, 0xe5, 0x41 },
+                },
+                new {
+                    message = new byte[64],
+                    nonce = System.Text.Encoding.UTF8.GetBytes("24-byte nonce for xsalsa"),
+                    key = System.Text.Encoding.UTF8.GetBytes("this is 32-byte key for xsalsa20"),
+                    result = new byte[] {
+                        0x48, 0x48, 0x29, 0x7f, 0xeb, 0x1f, 0xb5, 0x2f, 0xb6,
+                        0x6d, 0x81, 0x60, 0x9b, 0xd5, 0x47, 0xfa, 0xbc, 0xbe, 0x70,
+                        0x26, 0xed, 0xc8, 0xb5, 0xe5, 0xe4, 0x49, 0xd0, 0x88, 0xbf,
+                        0xa6, 0x9c, 0x08, 0x8f, 0x5d, 0x8d, 0xa1, 0xd7, 0x91, 0x26,
+                        0x7c, 0x2c, 0x19, 0x5a, 0x7f, 0x8c, 0xae, 0x9c, 0x4b, 0x40,
+                        0x50, 0xd0, 0x8c, 0xe6, 0xd3, 0xa1, 0x51, 0xec, 0x26, 0x5f,
+                        0x3a, 0x58, 0xe4, 0x76, 0x48},
+                },
+            };
+
+            foreach (var item in list)
+            {
+                using (var stream = new Crypto.Salsa20Stream(item.message, item.key, item.nonce))
+                {
+                    var result = new byte[item.message.Length];
+
+                    stream.Read(result, 0, item.message.Length);
+                    Assert.AreEqual(result, item.result);
+                }
+            }
+        }
+
         // A Test behaves as an ordinary method
         [Test]
         public void Salsa20TestSimplePasses()
