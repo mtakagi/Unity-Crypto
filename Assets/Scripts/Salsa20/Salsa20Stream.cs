@@ -128,6 +128,10 @@ namespace Crypto
         private void Encode(byte[] input, int offset, int count, long position)
         {
             var state = new uint[16];
+            var blockCounter = position / 64;
+            var keyPosition = position % 64;
+            var init = false;
+            var output = new byte[64];
 
             state[0] = (uint)'e' | (uint)'x' << 8 | (uint)'p' << 16 | (uint)'a' << 24; // expa
             state[5] = (uint)'n' | (uint)'d' << 8 | (uint)' ' << 16 | (uint)'3' << 24; // nd 3
@@ -145,12 +149,8 @@ namespace Crypto
 
             state[6] = (uint)this.m_nonce[0] | (uint)this.m_nonce[1] << 8 | (uint)this.m_nonce[2] << 16 | (uint)this.m_nonce[3] << 24;
             state[7] = (uint)this.m_nonce[4] | (uint)this.m_nonce[5] << 8 | (uint)this.m_nonce[6] << 16 | (uint)this.m_nonce[7] << 24;
-            state[8] = (uint)this.m_nonce[8] | (uint)this.m_nonce[9] << 8 | (uint)this.m_nonce[10] << 16 | (uint)this.m_nonce[11] << 24;
-            state[9] = (uint)this.m_nonce[12] | (uint)this.m_nonce[13] << 8 | (uint)this.m_nonce[14] << 16 | (uint)this.m_nonce[15] << 24;
-
-            var keyPosition = position % 64;
-            var init = false;
-            var output = new byte[64];
+            state[8] = (uint)(blockCounter & 0xffff_ffff);
+            state[9] = (uint)((blockCounter >> 32) & 0xffff_ffff);
 
             for (var i = offset; i < count; i++)
             {
